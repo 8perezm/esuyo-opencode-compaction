@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { parseCommandAction } from "../src/guard.js"
+import { parseCommandAction } from "../src/autocompact.js"
 
 test("no argument shows status", () => {
   assert.deepEqual(parseCommandAction(""), { kind: "status" })

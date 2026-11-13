@@ -15,8 +15,8 @@ const textOutput = {
  * same methods as the TUI so both stay in sync, and the TUI shows the returned
  * text as a toast instead of adding a message to the conversation.
  */
-export const CompactionGuardRpc = Rpc.define({
-  id: "esuyo.compaction-guard",
+export const AutocompactRpc = Rpc.define({
+  id: "esuyo.autocompact",
   methods: {
     status: {
       input: {

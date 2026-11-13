@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/opencode-compaction-guard.schema.json",
-  "title": "OpenCode compaction guard",
-  "description": "Configuration for the opencode-compaction-guard plugin.",
+  "$id": "https://example.invalid/opencode-autocompact.schema.json",
+  "title": "OpenCode Autocompact",
+  "description": "Configuration for the @esuyo/esuyo-opencode-compaction plugin.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Default for sessions without a per-session override. The /compaction-guard command can override it for one session."
+      "description": "Default for sessions without a per-session override. The /autocompact command can override it for one session."
     },
     "reservePercent": {
       "type": ["number", "string"],
@@ -44,7 +44,7 @@
     "notify": {
       "type": "boolean",
       "default": false,
-      "description": "Post a short synthetic message when the guard requests a compaction."
+      "description": "Show a toast when Autocompact requests a compaction."
     },
     "debug": {
       "type": "boolean",

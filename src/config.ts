@@ -2,9 +2,9 @@ import { readFile, stat } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
 
-export const CONFIG_FILE = "compaction-guard.json"
+export const CONFIG_FILE = "autocompact.json"
 
-export interface GuardConfig {
+export interface AutocompactConfig {
   /** Default for sessions that have no per-session override. */
   enabled: boolean
   /** Share of the model window kept free. 15 means compaction starts at 85% full. */
@@ -19,13 +19,13 @@ export interface GuardConfig {
   fallbackContextWindow: number
   /** Minimum time between context checks for one session. */
   debounceMs: number
-  /** Post a short synthetic message when the guard requests a compaction. */
+  /** Show a toast when Autocompact requests a compaction. */
   notify: boolean
   /** Log measurements to the OpenCode server log. */
   debug: boolean
 }
 
-export const DEFAULT_CONFIG: Readonly<GuardConfig> = Object.freeze({
+export const DEFAULT_CONFIG: Readonly<AutocompactConfig> = Object.freeze({
   enabled: true,
   reservePercent: 15,
   reserveTokens: null,
@@ -97,7 +97,7 @@ function nonNegativeInteger(value: unknown, fallback: number): number {
  * Accept the values a person is likely to put in the file and fall back to
  * defaults for anything unknown or out of range.
  */
-export function normalizeConfig(value: unknown): GuardConfig {
+export function normalizeConfig(value: unknown): AutocompactConfig {
   const raw = isRecord(value) ? value : {}
   return {
     enabled: boolean(raw.enabled, DEFAULT_CONFIG.enabled),
@@ -232,7 +232,7 @@ function inputWindow(limit: ModelLimit | undefined): number {
  */
 export function thresholdFor(
   config: Pick<
-    GuardConfig,
+    AutocompactConfig,
     | "reservePercent"
     | "reserveTokens"
     | "triggerTokens"
@@ -276,18 +276,18 @@ export function thresholdFor(
 }
 
 export interface ConfigReadResult {
-  readonly config: GuardConfig
+  readonly config: AutocompactConfig
   readonly path: string
 }
 
 /**
  * Reads the config on demand. The file's mtime is checked on every access, so
  * edits apply without restarting OpenCode, and a broken file keeps the last
- * good values instead of disabling the guard.
+ * good values instead of disabling Autocompact.
  */
 export class ConfigStore {
   readonly path: string
-  private cached: GuardConfig | undefined
+  private cached: AutocompactConfig | undefined
   private mtimeMs = -1
   private lastError: string | undefined
 
@@ -323,7 +323,7 @@ export class ConfigStore {
       if (message !== this.lastError) {
         this.lastError = message
         this.onError(
-          `[compaction-guard] Could not read ${this.path}: ${message}. Using the last good config.`,
+          `[autocompact] Could not read ${this.path}: ${message}. Using the last good config.`,
         )
       }
       this.cached ??= DEFAULT_CONFIG

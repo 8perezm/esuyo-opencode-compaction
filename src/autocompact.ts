@@ -4,7 +4,7 @@ import {
   ConfigStore,
   thresholdFor,
   type EffectiveThreshold,
-  type GuardConfig,
+  type AutocompactConfig,
 } from "./config"
 import {
   compactionState,
@@ -12,10 +12,10 @@ import {
   type CompactionState,
   type Measurement,
 } from "./measure"
-import { CompactionGuardRpc } from "./rpc"
+import { AutocompactRpc } from "./rpc"
 
-const LOG_PREFIX = "[compaction-guard]"
-const COMMAND_NAME = "compaction-guard"
+const LOG_PREFIX = "[autocompact]"
+const COMMAND_NAME = "autocompact"
 const STORAGE_PREFIX = "session/"
 const REQUEST_TIMEOUT_MS = 120_000
 const SUCCESS_COOLDOWN_MS = 3_000
@@ -48,11 +48,11 @@ interface Inspection {
   readonly compaction: CompactionState
 }
 
-export interface Guard {
+export interface Autocompact {
   dispose(): Promise<void>
 }
 
-export interface GuardOptions {
+export interface AutocompactOptions {
   readonly configPath: string
 }
 
@@ -63,11 +63,11 @@ interface Feedback {
   readonly variant: FeedbackVariant
 }
 
-export type GuardAction =
+export type AutocompactAction =
   | { readonly kind: "status" | "on" | "off" | "toggle" | "reset" | "reload" | "help" }
   | { readonly kind: "unknown"; readonly value: string }
 
-export function parseCommandAction(text: string): GuardAction {
+export function parseCommandAction(text: string): AutocompactAction {
   const value = text.trim().split(/\s+/)[0]?.toLowerCase() ?? ""
   switch (value) {
     case "":
@@ -136,7 +136,7 @@ function backoff(failures: number): number {
 
 function helpText(): string {
   return [
-    "Compaction guard commands:",
+    "Autocompact commands:",
     `/${COMMAND_NAME}            show status`,
     `/${COMMAND_NAME} on         enable for this session`,
     `/${COMMAND_NAME} off        disable for this session`,
@@ -146,10 +146,10 @@ function helpText(): string {
   ].join("\n")
 }
 
-export async function createGuard(
+export async function createAutocompact(
   ctx: Plugin.Context,
-  options: GuardOptions,
-): Promise<Guard> {
+  options: AutocompactOptions,
+): Promise<Autocompact> {
   const store = new ConfigStore(options.configPath, logError)
   const initial = await store.get()
 
@@ -235,7 +235,7 @@ export async function createGuard(
         return override
       }
     } catch (error) {
-      logError(`Could not read the guard state for ${sessionID}:`, error)
+      logError(`Could not read the Autocompact state for ${sessionID}:`, error)
     }
     overrides.set(sessionID, null)
     return undefined
@@ -254,13 +254,13 @@ export async function createGuard(
 
   async function isEnabled(
     sessionID: string,
-    config: GuardConfig,
+    config: AutocompactConfig,
   ): Promise<{ enabled: boolean; override: SessionOverride | undefined }> {
     const override = await overrideFor(sessionID)
     return { enabled: override?.enabled ?? config.enabled, override }
   }
 
-  async function inspect(sessionID: string, config: GuardConfig): Promise<Inspection> {
+  async function inspect(sessionID: string, config: AutocompactConfig): Promise<Inspection> {
     const messages = await ctx.session.context({ sessionID })
     const expected = await sessionModel(sessionID)
     const measurement = measureContext(messages, expected)
@@ -333,14 +333,14 @@ export async function createGuard(
       if (config.notify) {
         await emitFeedback(sessionID, {
           text:
-            `Compaction guard: context is ~${formatTokens(measurement.total)} of ` +
+            `Autocompact: context is ~${formatTokens(measurement.total)} of ` +
             `${formatTokens(window)} tokens (${formatPercent((measurement.total / window) * 100)}). ` +
             "Requesting compaction.",
           variant: "info",
         })
       }
     } catch (error) {
-      logError(`Guard check failed for ${sessionID}:`, error)
+      logError(`Autocompact check failed for ${sessionID}:`, error)
     } finally {
       state.checking = false
     }
@@ -349,7 +349,7 @@ export async function createGuard(
   function formatStatus(
     sessionID: string,
     inspection: Inspection,
-    config: GuardConfig,
+    config: AutocompactConfig,
     path: string,
     enabled: boolean,
     override: SessionOverride | undefined,
@@ -358,7 +358,7 @@ export async function createGuard(
     const { threshold, window, reserve, source } = inspection.threshold
     const origin = override ? "session override" : "global default"
     const lines = [
-      `Compaction guard: ${enabled ? "ON" : "OFF"} (${origin})`,
+      `Autocompact: ${enabled ? "ON" : "OFF"} (${origin})`,
       `Trigger: ${formatTokens(threshold)} / ${formatTokens(window)} tokens ` +
         `(${formatPercent((threshold / window) * 100)} full, reserve ${formatTokens(reserve)}; ${sourceLabel(source)})`,
     ]
@@ -406,12 +406,12 @@ export async function createGuard(
     }
   }
 
-  async function runAction(sessionID: string, action: GuardAction): Promise<Feedback> {
+  async function runAction(sessionID: string, action: AutocompactAction): Promise<Feedback> {
     if (action.kind === "help") return { text: helpText(), variant: "info" }
 
     if (action.kind === "unknown") {
       return {
-        text: `Unknown compaction guard action "${action.value}".\n\n${helpText()}`,
+        text: `Unknown Autocompact action "${action.value}".\n\n${helpText()}`,
         variant: "error",
       }
     }
@@ -448,7 +448,7 @@ export async function createGuard(
     }
   }
 
-  const rpc = await ctx.rpc.register(CompactionGuardRpc, {
+  const rpc = await ctx.rpc.register(AutocompactRpc, {
     status: async (input) => {
       const { sessionID } = input as { sessionID: string }
       return { text: (await statusFeedback(sessionID)).text }

@@ -1,10 +1,10 @@
 import { isAbsolute, resolve } from "node:path"
 import { Plugin } from "@opencode/plugin"
 import { defaultConfigPath } from "./config"
-import { createGuard } from "./guard"
+import { createAutocompact } from "./autocompact"
 
 export default Plugin.define({
-  id: "esuyo.compaction-guard",
+  id: "esuyo.autocompact",
 
   async setup(ctx) {
     const configured =
@@ -15,7 +15,7 @@ export default Plugin.define({
         : resolve(ctx.location.directory, configured)
       : defaultConfigPath()
 
-    const guard = await createGuard(ctx, { configPath })
-    return () => guard.dispose()
+    const autocompact = await createAutocompact(ctx, { configPath })
+    return () => autocompact.dispose()
   },
 })

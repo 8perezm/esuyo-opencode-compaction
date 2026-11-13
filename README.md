@@ -1,4 +1,4 @@
-# OpenCode Compaction Guard
+# Autocompact
 
 An OpenCode V2 plugin that compacts a session **before** it reaches the model's
 context limit, with a config file in `~/.config/opencode` and a per-session
@@ -10,8 +10,8 @@ context window the provider reports. Set `contextWindow` to `null` if you want
 to follow each model's reported limit instead.
 
 OpenCode already has automatic compaction (`compaction.buffer`, default 15%).
-This plugin adds a configurable trigger and a session-local on/off switch. See
-[Relationship to built-in compaction](#relationship-to-built-in-compaction).
+Autocompact makes the trigger explicit and adds a session-local on/off switch.
+See [Relationship to built-in compaction](#relationship-to-built-in-compaction).
 
 ## Install
 
@@ -48,10 +48,10 @@ needed.
 
 ### Config file
 
-Copy `compaction-guard.example.json` to:
+Copy `autocompact.example.json` to:
 
 ```text
-~/.config/opencode/compaction-guard.json
+~/.config/opencode/autocompact.json
 ```
 
 The plugin uses built-in defaults when the file is missing, so this step is
@@ -61,23 +61,23 @@ optional. Any file named by `$XDG_CONFIG_HOME/opencode` is also supported.
 
 | Command | Behavior |
 | --- | --- |
-| `/compaction-guard` | Show status, current estimate, and the trigger |
-| `/compaction-guard on` | Enable the guard for this session |
-| `/compaction-guard off` | Disable the guard for this session |
-| `/compaction-guard toggle` | Switch this session |
-| `/compaction-guard reset` | Remove the session override and use the global default |
-| `/compaction-guard reload` | Reread the config file |
-| `/compaction-guard help` | Show command help |
+| `/autocompact` | Show status, current estimate, and the trigger |
+| `/autocompact on` | Enable Autocompact for this session |
+| `/autocompact off` | Disable Autocompact for this session |
+| `/autocompact toggle` | Switch this session |
+| `/autocompact reset` | Remove the session override and use the global default |
+| `/autocompact reload` | Reread the config file |
+| `/autocompact help` | Show command help |
 
-The guard is **on by default**. Session overrides are stored in OpenCode's
+Autocompact is **on by default**. Session overrides are stored in OpenCode's
 plugin storage, so they survive a server restart until you reset them.
 
 Feedback is shown as a TUI toast. It does not add a message to the
-conversation, so checking status or turning the guard off costs no context.
+conversation, so checking status or turning Autocompact off costs no context.
 
 ## Configuration
 
-`~/.config/opencode/compaction-guard.json`:
+`~/.config/opencode/autocompact.json`:
 
 ```json
 {
@@ -102,7 +102,7 @@ conversation, so checking status or turning the guard off costs no context.
 | `contextWindow` | `256000` | Fixed reference window for every model. Set `null` to use the model's reported limit |
 | `fallbackContextWindow` | `256000` | Window used when the model reports none |
 | `debounceMs` | `2000` | Minimum gap between context checks for one session |
-| `notify` | `false` | Show a toast when the guard requests a compaction |
+| `notify` | `false` | Show a toast when Autocompact requests a compaction |
 | `debug` | `false` | Log measurements to the OpenCode server log |
 
 ### How the trigger is calculated
@@ -124,7 +124,7 @@ trigger  217,600  (85% full)
 ```
 
 Edits to the config file are picked up automatically through its modification
-time. A broken file keeps the last good values instead of switching the guard
+time. A broken file keeps the last good values instead of turning Autocompact
 off.
 
 ## How it measures context
@@ -142,8 +142,8 @@ It uses the same idea as OpenCode's built-in compaction:
 This is deliberately conservative. A 15% reserve leaves room for the estimate
 to be a little low and for a large turn to overshoot before the next check.
 
-The guard checks on step boundaries, on idle, and after a model switch. Checks
-are debounced, and a session never has two guard-initiated compactions pending.
+Autocompact checks on step boundaries, on idle, and after a model switch. Checks
+are debounced, and a session never has two plugin-initiated compactions pending.
 After a failed compaction it backs off (one minute, then longer) instead of
 retrying in a loop.
 
@@ -161,10 +161,10 @@ OpenCode's built-in automatic compaction is still controlled by `compaction` in
 }
 ```
 
-The built-in default is 15%, which starts compaction at 85% full. The guard now
+The built-in default is 15%, which starts compaction at 85% full. Autocompact
 uses the same 15% reserve, so both fire at the same point. That is safe — either
-one compacts the session in time — but it means the guard is no longer *earlier*
-than the built-in trigger. To make the guard fire first, lower the built-in
+one compacts the session in time — but it means Autocompact is not *earlier*
+than the built-in trigger. To make Autocompact fire first, lower the built-in
 buffer (a smaller buffer means a later built-in trigger), for example:
 
 ```jsonc
@@ -176,15 +176,15 @@ buffer (a smaller buffer means a later built-in trigger), for example:
 }
 ```
 
-Then the guard compacts at 85% full and the built-in one remains a safety net at
-95% full:
+Then Autocompact compacts at 85% full and the built-in one remains a safety net
+at 95% full:
 
-- Guard on: compaction at 85% of the 256k reference window.
-- `/compaction-guard off`: the built-in compaction still protects the session.
+- Autocompact on: compaction at 85% of the 256k reference window.
+- `/autocompact off`: the built-in compaction still protects the session.
 - Built-in compaction also recovers once if a provider rejects an oversized
   request.
 
-If you want the guard to be the **only** automatic compaction, turn the
+If you want Autocompact to be the **only** automatic compaction, turn the
 built-in one off:
 
 ```jsonc
@@ -197,16 +197,16 @@ built-in one off:
 
 Manual `/compact` and plugin-requested compaction still work with `auto:
 false`, but the provider-overflow recovery is lost. In that setup,
-`/compaction-guard off` means no automatic compaction at all for that session.
+`/autocompact off` means no automatic compaction at all for that session.
 
-> The guard cannot change the built-in threshold per session. `/compaction-guard
-> off` only disables this plugin's earlier trigger.
+> Autocompact cannot change the built-in threshold per session.
+> `/autocompact off` only disables this plugin's trigger.
 
 ## Notes and limitations
 
 - The session's selected model supplies the window. An agent that overrides the
   model may have a different real limit.
-- Subagent sessions are guarded too.
+- Subagent sessions are covered too.
 - `compaction` is lossy. Increase OpenCode's `compaction.keep.tokens` if exact
   recent details matter.
 - Compaction cannot create room when most of a request is fixed instructions and
@@ -215,8 +215,7 @@ false`, but the provider-overflow recovery is lost. In that setup,
   Set `contextWindow` or `triggerTokens` to be explicit.
 - Status and toggle feedback is delivered through an RPC event and shown as a
   TUI toast. Clients other than the TUI still get the command behavior, and
-  the status is available through the plugin RPC
-  (`esuyo.compaction-guard`).
+  the status is available through the plugin RPC (`esuyo.autocompact`).
 
 ## Development
 
@@ -233,7 +232,7 @@ Layout:
 - `src/index.ts` — plugin registration and config path
 - `src/config.ts` — JSONC loading, validation, threshold calculation
 - `src/measure.ts` — prompt measurement and text estimation
-- `src/guard.ts` — event handling, trigger, storage, RPC, and slash command
+- `src/autocompact.ts` — event handling, trigger, storage, RPC, and slash command
 - `src/rpc.ts` — typed methods and the feedback event
 - `src/tui.tsx` — TUI toast renderer
 
