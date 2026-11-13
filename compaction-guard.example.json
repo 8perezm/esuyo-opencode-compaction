@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "reservePercent": 15,
+  "reserveTokens": null,
+  "triggerTokens": null,
+  "contextWindow": 256000,
+  "fallbackContextWindow": 256000,
+  "debounceMs": 2000,
+  "notify": false,
+  "debug": false
+}

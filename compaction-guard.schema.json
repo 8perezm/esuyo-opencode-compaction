@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/opencode-compaction-guard.schema.json",
+  "title": "OpenCode compaction guard",
+  "description": "Configuration for the opencode-compaction-guard plugin.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Default for sessions without a per-session override. The /compaction-guard command can override it for one session."
+    },
+    "reservePercent": {
+      "type": ["number", "string"],
+      "default": 15,
+      "description": "Share of the model window kept free. 15 starts compaction at 85% full. Accepts a number or a string such as \"15%\"."
+    },
+    "reserveTokens": {
+      "type": ["number", "null"],
+      "default": null,
+      "description": "Absolute reserve in tokens. When set, overrides reservePercent."
+    },
+    "triggerTokens": {
+      "type": ["number", "null"],
+      "default": null,
+      "description": "Exact context size that triggers compaction. When set, overrides the window and reserve calculation."
+    },
+    "contextWindow": {
+      "type": ["number", "null"],
+      "default": 256000,
+      "description": "Fixed reference window used for every model. 256000 with a 15% reserve triggers at 217600 tokens. Set null to use each model's reported limit."
+    },
+    "fallbackContextWindow": {
+      "type": "number",
+      "default": 256000,
+      "description": "Window used when the model does not report one. 256000 with a 15% reserve triggers at 217600 tokens."
+    },
+    "debounceMs": {
+      "type": "number",
+      "default": 2000,
+      "description": "Minimum time between context checks for one session."
+    },
+    "notify": {
+      "type": "boolean",
+      "default": false,
+      "description": "Post a short synthetic message when the guard requests a compaction."
+    },
+    "debug": {
+      "type": "boolean",
+      "default": false,
+      "description": "Log measurements to the OpenCode server log."
+    }
+  }
+}
