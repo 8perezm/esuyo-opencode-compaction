@@ -224,6 +224,8 @@ false`, but the provider-overflow recovery is lost. In that setup,
 npm install
 npm run typecheck
 npm test
+npm run check      # typecheck + test
+npm run pack:check # verify the published file list
 ```
 
 Layout:
@@ -234,3 +236,21 @@ Layout:
 - `src/guard.ts` — event handling, trigger, storage, RPC, and slash command
 - `src/rpc.ts` — typed methods and the feedback event
 - `src/tui.tsx` — TUI toast renderer
+
+## Publishing
+
+Pushes to `main` publish automatically through
+`.github/workflows/publish.yml`:
+
+1. Run the tests.
+2. Bump the version from the commit message (`feat:` minor,
+   `BREAKING CHANGE:` or `major:` major, otherwise patch).
+3. Commit and tag the bump, then run `npm publish --access public`.
+4. Create the GitHub release.
+
+The workflow needs a repository secret named `NPM_TOKEN`. Without it the
+`Check npm token` step stops the job before any version bump is pushed.
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
