@@ -27,6 +27,15 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Check npm token
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN is not set. Add a repository secret named NPM_TOKEN with an npm automation token."
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm ci
 
