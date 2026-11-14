@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
 import type { Plugin } from "@opencode/plugin"
-import { createAutocompact } from "../src/autocompact.js"
+import { createCompaction } from "../src/compaction.js"
 
 type Event = unknown
 
@@ -38,8 +38,8 @@ function withTimeout<T>(promise: Promise<T>, ms = 2_000): Promise<T> {
 }
 
 test("reaching the threshold requests one compaction, and a session override stops it", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "autocompact-"))
-  const configPath = join(directory, "autocompact.json")
+  const directory = await mkdtemp(join(tmpdir(), "compaction-"))
+  const configPath = join(directory, "esuyo-opencode-compaction.json")
   await writeFile(
     configPath,
     JSON.stringify({ triggerTokens: 100, debounceMs: 0, enabled: true }),
@@ -126,7 +126,7 @@ test("reaching the threshold requests one compaction, and a session override sto
     },
   } as unknown as Plugin.Context
 
-  const autocompact = await createAutocompact(ctx, { configPath })
+  const compaction = await createCompaction(ctx, { configPath })
 
   try {
     events.push({ type: "session.step.ended", data: { sessionID: "ses_test" } })
@@ -154,7 +154,7 @@ test("reaching the threshold requests one compaction, and a session override sto
     await new Promise((resolve) => setTimeout(resolve, 50))
     assert.equal(compactCalls, 1, "cooldown after a compaction still applies")
   } finally {
-    await autocompact.dispose()
+    await compaction.dispose()
     await rm(directory, { recursive: true, force: true })
   }
 })

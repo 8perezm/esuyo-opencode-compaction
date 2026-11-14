@@ -1,7 +1,7 @@
 {
   "name": "@esuyo/esuyo-opencode-compaction",
   "version": "0.2.0",
-  "description": "Autocompact: OpenCode plugin that compacts a session at a fixed 256k context reference (15% reserve) with a per-session on/off command.",
+  "description": "Esuyo Opencode Compaction: OpenCode plugin that compacts a session at a fixed 256k context reference (15% reserve) with a per-session on/off command.",
   "license": "Apache-2.0",
   "author": "Miguel Perez",
   "repository": {
@@ -39,8 +39,8 @@
     "src",
     "README.md",
     "LICENSE",
-    "autocompact.example.json",
-    "autocompact.schema.json"
+    "esuyo-opencode-compaction.example.json",
+    "esuyo-opencode-compaction.schema.json"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

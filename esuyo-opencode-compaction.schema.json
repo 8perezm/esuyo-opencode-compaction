@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.invalid/opencode-autocompact.schema.json",
-  "title": "OpenCode Autocompact",
+  "$id": "https://example.invalid/esuyo-opencode-compaction.schema.json",
+  "title": "Esuyo Opencode Compaction",
   "description": "Configuration for the @esuyo/esuyo-opencode-compaction plugin.",
   "type": "object",
   "additionalProperties": false,
@@ -9,7 +9,7 @@
     "enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Default for sessions without a per-session override. The /autocompact command can override it for one session."
+      "description": "Default for sessions without a per-session override. The /compaction command can override it for one session."
     },
     "reservePercent": {
       "type": ["number", "string"],
@@ -44,7 +44,7 @@
     "notify": {
       "type": "boolean",
       "default": false,
-      "description": "Show a toast when Autocompact requests a compaction."
+      "description": "Show a toast when Compaction requests a compaction."
     },
     "debug": {
       "type": "boolean",

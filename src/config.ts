@@ -2,9 +2,9 @@ import { readFile, stat } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
 
-export const CONFIG_FILE = "autocompact.json"
+export const CONFIG_FILE = "esuyo-opencode-compaction.json"
 
-export interface AutocompactConfig {
+export interface CompactionConfig {
   /** Default for sessions that have no per-session override. */
   enabled: boolean
   /** Share of the model window kept free. 15 means compaction starts at 85% full. */
@@ -19,13 +19,13 @@ export interface AutocompactConfig {
   fallbackContextWindow: number
   /** Minimum time between context checks for one session. */
   debounceMs: number
-  /** Show a toast when Autocompact requests a compaction. */
+  /** Show a toast when Compaction requests a compaction. */
   notify: boolean
   /** Log measurements to the OpenCode server log. */
   debug: boolean
 }
 
-export const DEFAULT_CONFIG: Readonly<AutocompactConfig> = Object.freeze({
+export const DEFAULT_CONFIG: Readonly<CompactionConfig> = Object.freeze({
   enabled: true,
   reservePercent: 15,
   reserveTokens: null,
@@ -97,7 +97,7 @@ function nonNegativeInteger(value: unknown, fallback: number): number {
  * Accept the values a person is likely to put in the file and fall back to
  * defaults for anything unknown or out of range.
  */
-export function normalizeConfig(value: unknown): AutocompactConfig {
+export function normalizeConfig(value: unknown): CompactionConfig {
   const raw = isRecord(value) ? value : {}
   return {
     enabled: boolean(raw.enabled, DEFAULT_CONFIG.enabled),
@@ -232,7 +232,7 @@ function inputWindow(limit: ModelLimit | undefined): number {
  */
 export function thresholdFor(
   config: Pick<
-    AutocompactConfig,
+    CompactionConfig,
     | "reservePercent"
     | "reserveTokens"
     | "triggerTokens"
@@ -276,18 +276,18 @@ export function thresholdFor(
 }
 
 export interface ConfigReadResult {
-  readonly config: AutocompactConfig
+  readonly config: CompactionConfig
   readonly path: string
 }
 
 /**
  * Reads the config on demand. The file's mtime is checked on every access, so
  * edits apply without restarting OpenCode, and a broken file keeps the last
- * good values instead of disabling Autocompact.
+ * good values instead of disabling Compaction.
  */
 export class ConfigStore {
   readonly path: string
-  private cached: AutocompactConfig | undefined
+  private cached: CompactionConfig | undefined
   private mtimeMs = -1
   private lastError: string | undefined
 
@@ -323,7 +323,7 @@ export class ConfigStore {
       if (message !== this.lastError) {
         this.lastError = message
         this.onError(
-          `[autocompact] Could not read ${this.path}: ${message}. Using the last good config.`,
+          `[compaction] Could not read ${this.path}: ${message}. Using the last good config.`,
         )
       }
       this.cached ??= DEFAULT_CONFIG

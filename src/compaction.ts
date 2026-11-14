@@ -4,7 +4,7 @@ import {
   ConfigStore,
   thresholdFor,
   type EffectiveThreshold,
-  type AutocompactConfig,
+  type CompactionConfig,
 } from "./config"
 import {
   compactionState,
@@ -12,10 +12,10 @@ import {
   type CompactionState,
   type Measurement,
 } from "./measure"
-import { AutocompactRpc } from "./rpc"
+import { CompactionRpc } from "./rpc"
 
-const LOG_PREFIX = "[autocompact]"
-const COMMAND_NAME = "autocompact"
+const LOG_PREFIX = "[compaction]"
+const COMMAND_NAME = "compaction"
 const STORAGE_PREFIX = "session/"
 const REQUEST_TIMEOUT_MS = 120_000
 const SUCCESS_COOLDOWN_MS = 3_000
@@ -48,11 +48,11 @@ interface Inspection {
   readonly compaction: CompactionState
 }
 
-export interface Autocompact {
+export interface Compaction {
   dispose(): Promise<void>
 }
 
-export interface AutocompactOptions {
+export interface CompactionOptions {
   readonly configPath: string
 }
 
@@ -63,11 +63,11 @@ interface Feedback {
   readonly variant: FeedbackVariant
 }
 
-export type AutocompactAction =
+export type CompactionAction =
   | { readonly kind: "status" | "on" | "off" | "toggle" | "reset" | "reload" | "help" }
   | { readonly kind: "unknown"; readonly value: string }
 
-export function parseCommandAction(text: string): AutocompactAction {
+export function parseCommandAction(text: string): CompactionAction {
   const value = text.trim().split(/\s+/)[0]?.toLowerCase() ?? ""
   switch (value) {
     case "":
@@ -136,7 +136,7 @@ function backoff(failures: number): number {
 
 function helpText(): string {
   return [
-    "Autocompact commands:",
+    "Compaction commands:",
     `/${COMMAND_NAME}            show status`,
     `/${COMMAND_NAME} on         enable for this session`,
     `/${COMMAND_NAME} off        disable for this session`,
@@ -146,10 +146,10 @@ function helpText(): string {
   ].join("\n")
 }
 
-export async function createAutocompact(
+export async function createCompaction(
   ctx: Plugin.Context,
-  options: AutocompactOptions,
-): Promise<Autocompact> {
+  options: CompactionOptions,
+): Promise<Compaction> {
   const store = new ConfigStore(options.configPath, logError)
   const initial = await store.get()
 
@@ -235,7 +235,7 @@ export async function createAutocompact(
         return override
       }
     } catch (error) {
-      logError(`Could not read the Autocompact state for ${sessionID}:`, error)
+      logError(`Could not read the Compaction state for ${sessionID}:`, error)
     }
     overrides.set(sessionID, null)
     return undefined
@@ -254,13 +254,13 @@ export async function createAutocompact(
 
   async function isEnabled(
     sessionID: string,
-    config: AutocompactConfig,
+    config: CompactionConfig,
   ): Promise<{ enabled: boolean; override: SessionOverride | undefined }> {
     const override = await overrideFor(sessionID)
     return { enabled: override?.enabled ?? config.enabled, override }
   }
 
-  async function inspect(sessionID: string, config: AutocompactConfig): Promise<Inspection> {
+  async function inspect(sessionID: string, config: CompactionConfig): Promise<Inspection> {
     const messages = await ctx.session.context({ sessionID })
     const expected = await sessionModel(sessionID)
     const measurement = measureContext(messages, expected)
@@ -333,14 +333,14 @@ export async function createAutocompact(
       if (config.notify) {
         await emitFeedback(sessionID, {
           text:
-            `Autocompact: context is ~${formatTokens(measurement.total)} of ` +
+            `Compaction: context is ~${formatTokens(measurement.total)} of ` +
             `${formatTokens(window)} tokens (${formatPercent((measurement.total / window) * 100)}). ` +
             "Requesting compaction.",
           variant: "info",
         })
       }
     } catch (error) {
-      logError(`Autocompact check failed for ${sessionID}:`, error)
+      logError(`Compaction check failed for ${sessionID}:`, error)
     } finally {
       state.checking = false
     }
@@ -349,7 +349,7 @@ export async function createAutocompact(
   function formatStatus(
     sessionID: string,
     inspection: Inspection,
-    config: AutocompactConfig,
+    config: CompactionConfig,
     path: string,
     enabled: boolean,
     override: SessionOverride | undefined,
@@ -358,7 +358,7 @@ export async function createAutocompact(
     const { threshold, window, reserve, source } = inspection.threshold
     const origin = override ? "session override" : "global default"
     const lines = [
-      `Autocompact: ${enabled ? "ON" : "OFF"} (${origin})`,
+      `Compaction: ${enabled ? "ON" : "OFF"} (${origin})`,
       `Trigger: ${formatTokens(threshold)} / ${formatTokens(window)} tokens ` +
         `(${formatPercent((threshold / window) * 100)} full, reserve ${formatTokens(reserve)}; ${sourceLabel(source)})`,
     ]
@@ -375,7 +375,7 @@ export async function createAutocompact(
     }
 
     if (inspection.compaction !== "none") {
-      lines.push(`Compaction: ${inspection.compaction}`)
+      lines.push(`Compaction state: ${inspection.compaction}`)
     }
     if (active.has(sessionID) || state.requestedAt !== undefined) {
       lines.push("Status: compaction requested")
@@ -406,12 +406,12 @@ export async function createAutocompact(
     }
   }
 
-  async function runAction(sessionID: string, action: AutocompactAction): Promise<Feedback> {
+  async function runAction(sessionID: string, action: CompactionAction): Promise<Feedback> {
     if (action.kind === "help") return { text: helpText(), variant: "info" }
 
     if (action.kind === "unknown") {
       return {
-        text: `Unknown Autocompact action "${action.value}".\n\n${helpText()}`,
+        text: `Unknown compaction action "${action.value}".\n\n${helpText()}`,
         variant: "error",
       }
     }
@@ -448,7 +448,7 @@ export async function createAutocompact(
     }
   }
 
-  const rpc = await ctx.rpc.register(AutocompactRpc, {
+  const rpc = await ctx.rpc.register(CompactionRpc, {
     status: async (input) => {
       const { sessionID } = input as { sessionID: string }
       return { text: (await statusFeedback(sessionID)).text }

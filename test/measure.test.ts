@@ -95,7 +95,7 @@ test("image attachments use a fixed estimate instead of their base64 payload", (
   assert.equal(size, 1_500)
 })
 
-test("a completed compaction is reported so Autocompact can wait", () => {
+test("a completed compaction is reported so Compaction can wait", () => {
   const state = compactionState(
     messages([
       {

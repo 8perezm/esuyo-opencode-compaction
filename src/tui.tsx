@@ -1,5 +1,5 @@
 import { Plugin } from "@opencode/plugin/tui"
-import { AutocompactRpc } from "./rpc"
+import { CompactionRpc } from "./rpc"
 
 type ToastVariant = "info" | "success" | "warning" | "error"
 
@@ -8,14 +8,14 @@ type ToastVariant = "info" | "success" | "warning" | "error"
  * the same RPC also works from the web client or a remote TUI.
  */
 export default Plugin.define({
-  id: "esuyo.autocompact.tui",
+  id: "esuyo.compaction.tui",
 
   setup(context) {
-    const rpc = context.client.rpc(AutocompactRpc)
+    const rpc = context.client.rpc(CompactionRpc)
     const stop = rpc.events.on("feedback", (event) => {
       const data = event.data as { sessionID: string; text: string; variant?: ToastVariant }
       context.ui.toast.show({
-        title: "Autocompact",
+        title: "Compaction",
         message: data.text,
         variant: data.variant ?? "info",
         duration: 7_000,
